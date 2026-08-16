@@ -1,0 +1,24 @@
+services:
+  bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: rifq-bot
+    command: npm run start:bot
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=production
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: rifq-worker
+    command: npm run start:worker
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=production

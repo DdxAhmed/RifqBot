@@ -1,0 +1,182 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id                Int              @id @default(autoincrement())
+  telegramId        BigInt           @unique
+  firstName         String?
+  city              String?
+  timezone          String           @default("Asia/Riyadh")
+  isBanned          Boolean          @default(false)
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  settings          UserSettings?
+  reminders         Reminder[]
+  courses           Course[]
+  goals             DailyGoal[]
+  notes             Note[]
+  adhkarSettings    AdhkarSettings?
+  adhkarProgress    AdhkarProgress[]
+  activities        Activity[]
+  streak            Streak?
+  adminActions      AdminAction[]
+  @@index([createdAt])
+}
+
+model UserSettings {
+  id                 Int      @id @default(autoincrement())
+  userId             Int      @unique
+  morningSummary     Boolean  @default(true)
+  eveningSummary     Boolean  @default(false)
+  notifications      Boolean  @default(true)
+  streakNotifications Boolean  @default(true)
+  language           String   @default("ar")
+  quietStart         String?
+  quietEnd           String?
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+enum RecurrenceType {
+  ONCE
+  DAILY
+  WEEKLY
+  CUSTOM
+}
+model Reminder {
+  id              Int            @id @default(autoincrement())
+  userId          Int
+  title           String
+  description     String?
+  dueAt           DateTime
+  recurrence      RecurrenceType @default(ONCE)
+  recurrenceRule  String?
+  active          Boolean        @default(true)
+  lastTriggeredAt DateTime?
+  completedAt     DateTime?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([active, dueAt])
+  @@index([userId, active])
+}
+
+model Course {
+  id                   Int          @id @default(autoincrement())
+  userId               Int
+  title                String
+  totalLessons         Int          @default(0)
+  startDate            DateTime?
+  targetCompletionDate DateTime?
+  lessonDuration       Int?
+  description          String?
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
+  user                 User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lessons              Lesson[]
+  notes                CourseNote[]
+  @@index([userId, createdAt])
+}
+
+model Lesson {
+  id          Int       @id @default(autoincrement())
+  courseId   Int
+  title       String
+  number      Int
+  videoUrl    String?
+  duration    Int?
+  notes       String?
+  completed   Boolean   @default(false)
+  completedAt DateTime?
+  course      Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  @@unique([courseId, number])
+}
+
+model CourseNote {
+  id        Int      @id @default(autoincrement())
+  courseId  Int
+  content   String
+  createdAt DateTime @default(now())
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+}
+
+model DailyGoal {
+  id          Int       @id @default(autoincrement())
+  userId      Int
+  title       String
+  date        DateTime  @db.Date
+  completed   Boolean   @default(false)
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId, date])
+}
+
+model Note {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId, createdAt])
+}
+
+model AdhkarSettings {
+  id              Int      @id @default(autoincrement())
+  userId          Int      @unique
+  morningEnabled  Boolean  @default(true)
+  eveningEnabled  Boolean  @default(true)
+  morningTime     String   @default("06:00")
+  eveningTime     String   @default("18:00")
+  prayerBased     Boolean  @default(false)
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model AdhkarProgress {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  kind      String
+  date      DateTime @db.Date
+  itemIndex Int      @default(0)
+  completed Boolean  @default(false)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([userId, kind, date])
+}
+
+model Activity {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  type      String
+  entityId  Int?
+  metadata  Json?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId, createdAt])
+}
+
+model Streak {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @unique
+  current   Int      @default(0)
+  longest   Int      @default(0)
+  lastDate  DateTime? @db.Date
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model AdminAction {
+  id        Int      @id @default(autoincrement())
+  adminId   Int
+  action    String
+  targetId  BigInt?
+  metadata  Json?
+  createdAt DateTime @default(now())
+  admin     User     @relation(fields: [adminId], references: [id], onDelete: Cascade)
+  @@index([createdAt])
+}
