@@ -1,5 +1,7 @@
 import {
   listActiveReminders,
+  listRecurringReminders,
+  listCompletedReminders,
   getReminderById,
   markReminderDone,
   snoozeReminder,
@@ -8,6 +10,7 @@ import {
 import { recordUserActivity } from '../../services/streak.service.js';
 import {
   remindersListKeyboard,
+  completedRemindersKeyboard,
   reminderItemKeyboard,
   remindersMenuKeyboard
 } from '../keyboards/reminders.keyboard.js';
@@ -52,7 +55,7 @@ export function registerReminderHandlers(bot) {
     );
   });
 
-  // List reminders
+  // List active reminders
   bot.action('rem:list', async (ctx) => {
     await ctx.answerCbQuery().catch(() => {});
     const reminders = await listActiveReminders(ctx.state.user.id);
@@ -74,6 +77,57 @@ export function registerReminderHandlers(bot) {
       .catch(() => ctx.reply(text, { parse_mode: 'Markdown', ...remindersListKeyboard(reminders) }));
   });
 
+  // List recurring reminders
+  bot.action('rem:recurring', async (ctx) => {
+    await ctx.answerCbQuery().catch(() => {});
+    const recurring = await listRecurringReminders(ctx.state.user.id);
+    if (recurring.length === 0) {
+      const text = '🔁 **التذكيرات المتكررة**\n\nلا توجد تذكيرات دورية (يومية أو أسبوعية) حاليًا.';
+      return ctx.editMessageText(text, {
+        parse_mode: 'Markdown',
+        ...backKeyboard('menu:reminders')
+      });
+    }
+
+    let text = '🔁 **تذكيراتك المتكررة:**\n\n';
+    recurring.forEach((r, idx) => {
+      const time = formatArabicDateTime(r.dueAt, ctx.state.user.timezone);
+      const rec = r.recurrence === 'DAILY' ? 'يوميًا' : 'أسبوعيًا';
+      text += `${idx + 1}. **${r.title}** (${rec})\n   📅 الموعد القادم: ${time}\n\n`;
+    });
+
+    return ctx.editMessageText(text, {
+      parse_mode: 'Markdown',
+      ...remindersListKeyboard(recurring, 'menu:reminders')
+    }).catch(() => ctx.reply(text, { parse_mode: 'Markdown', ...remindersListKeyboard(recurring, 'menu:reminders') }));
+  });
+
+  // List completed reminders
+  bot.action('rem:completed', async (ctx) => {
+    await ctx.answerCbQuery().catch(() => {});
+    const completed = await listCompletedReminders(ctx.state.user.id, 10);
+    if (completed.length === 0) {
+      const text = '✅ **التذكيرات المكتملة**\n\nلا توجد تذكيرات مكتملة مسجلة بعد.';
+      return ctx.editMessageText(text, {
+        parse_mode: 'Markdown',
+        ...backKeyboard('menu:reminders')
+      });
+    }
+
+    let text = '✅ **أحدث التذكيرات المكتملة:**\n\n';
+    completed.forEach((r, idx) => {
+      const time = r.completedAt
+        ? formatArabicDateTime(r.completedAt, ctx.state.user.timezone)
+        : 'سابقًا';
+      text += `${idx + 1}. **${r.title}** (أُنجز في ${time})\n`;
+    });
+
+    return ctx.editMessageText(text, {
+      parse_mode: 'Markdown',
+      ...completedRemindersKeyboard(completed)
+    }).catch(() => ctx.reply(text, { parse_mode: 'Markdown', ...completedRemindersKeyboard(completed) }));
+  });
+
   // View specific reminder
   bot.action(/^rem_view:(\d+)$/, async (ctx) => {
     const id = parseInt(ctx.match[1], 10);
@@ -90,7 +144,7 @@ export function registerReminderHandlers(bot) {
       `📌 العنوان: **${reminder.title}**\n` +
       `📅 الموعد: ${time}\n` +
       `🔄 التكرار: ${rec}\n` +
-      `🟢 الحالة: ${reminder.active ? 'نشط' : 'غير نشط'}`;
+      `🟢 الحالة: ${reminder.active ? 'نشط' : 'مكتمل / غير نشط'}`;
 
     return ctx.editMessageText(text, { parse_mode: 'Markdown', ...reminderItemKeyboard(reminder.id) });
   });

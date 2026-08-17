@@ -28,6 +28,28 @@ export async function listActiveReminders(userId) {
   });
 }
 
+export async function listRecurringReminders(userId) {
+  return prisma.reminder.findMany({
+    where: {
+      userId,
+      active: true,
+      recurrence: { not: 'ONCE' }
+    },
+    orderBy: { dueAt: 'asc' }
+  });
+}
+
+export async function listCompletedReminders(userId, limit = 10) {
+  return prisma.reminder.findMany({
+    where: {
+      userId,
+      completedAt: { not: null }
+    },
+    orderBy: { completedAt: 'desc' },
+    take: limit
+  });
+}
+
 export async function listTodayReminders(userId, zone = DEFAULT_TIMEZONE) {
   const { start, end } = getDayBounds(zone);
   return prisma.reminder.findMany({

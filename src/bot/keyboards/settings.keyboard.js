@@ -1,5 +1,5 @@
 import { Markup } from 'telegraf';
-import { backToMainMenuButton } from './main.keyboard.js';
+import { homeButton, backButton } from './main.keyboard.js';
 
 export const settingsMenuKeyboard = (settings, user) => {
   return Markup.inlineKeyboard([
@@ -24,9 +24,12 @@ export const settingsMenuKeyboard = (settings, user) => {
       )
     ],
     [
+      Markup.button.callback('🤲 إعدادات الأذكار', 'adh_settings'),
       Markup.button.callback(`🌐 المنطقة الزمنية (${user.timezone || 'Asia/Riyadh'})`, 'stg:tz_menu')
     ],
-    [backToMainMenuButton()]
+    [
+      homeButton()
+    ]
   ]);
 };
 
@@ -48,6 +51,9 @@ export const timezonePickerKeyboard = () => {
       Markup.button.callback('🇹🇷 إسطنبول', 'stg_tz:Europe/Istanbul'),
       Markup.button.callback('🇬🇧 لندن (UTC)', 'stg_tz:UTC')
     ],
-    [Markup.button.callback('🔙 رجوع للإعدادات', 'nav:settings')]
+    [
+      backButton('menu:settings'),
+      homeButton()
+    ]
   ]);
 };

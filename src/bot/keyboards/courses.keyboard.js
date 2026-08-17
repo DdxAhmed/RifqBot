@@ -1,16 +1,39 @@
 import { Markup } from 'telegraf';
-import { backToMainMenuButton } from './main.keyboard.js';
+import { homeButton, backButton } from './main.keyboard.js';
 
 export const coursesMenuKeyboard = (courses = []) => {
-  const rows = courses.map((c) => [
-    Markup.button.callback(
-      `📚 ${c.title} (${c.progress.completed}/${c.progress.total} - ${c.progress.percent}%)`,
-      `crs_view:${c.id}`
-    )
+  const rows = [];
+
+  rows.push([
+    Markup.button.callback('➕ إضافة كورس', 'crs:add')
   ]);
 
-  rows.push([Markup.button.callback('➕ إضافة كورس جديد', 'crs:add')]);
-  rows.push([backToMainMenuButton()]);
+  if (courses.length > 0) {
+    const hasUnfinished = courses.some((c) => c.progress.remaining > 0);
+    if (hasUnfinished) {
+      rows.push([
+        Markup.button.callback('▶️ متابعة الكورس', 'crs:resume')
+      ]);
+    }
+  }
+
+  // Course list buttons
+  courses.forEach((c) => {
+    rows.push([
+      Markup.button.callback(
+        `📚 ${c.title} (${c.progress.completed}/${c.progress.total} - ${c.progress.percent}%)`,
+        `crs_view:${c.id}`
+      )
+    ]);
+  });
+
+  rows.push([
+    Markup.button.callback('📊 تقدمي', 'menu:progress')
+  ]);
+
+  rows.push([
+    homeButton()
+  ]);
 
   return Markup.inlineKeyboard(rows);
 };
@@ -21,20 +44,24 @@ export const courseDetailKeyboard = (course) => {
   if (course.nextUnfinished) {
     rows.push([
       Markup.button.callback(
-        `▶️ متابعة: ${course.nextUnfinished.title}`,
+        `▶️ إكمال: ${course.nextUnfinished.title}`,
         `crs_tgl:${course.id}:${course.nextUnfinished.number}`
       )
     ]);
   }
 
   rows.push([
-    Markup.button.callback('📑 عرض الدروس', `crs_ls:${course.id}`),
+    Markup.button.callback('📑 عرض كل الدروس', `crs_ls:${course.id}`),
     Markup.button.callback('📝 إضافة ملاحظة', `crs_note:${course.id}`)
   ]);
 
   rows.push([
-    Markup.button.callback('🗑️ حذف الكورس', `crs_del:${course.id}`),
-    Markup.button.callback('🔙 كورساتي', 'nav:courses')
+    Markup.button.callback('🗑️ حذف الكورس', `crs_del:${course.id}`)
+  ]);
+
+  rows.push([
+    backButton('menu:courses'),
+    homeButton()
   ]);
 
   return Markup.inlineKeyboard(rows);
@@ -67,8 +94,12 @@ export const courseLessonsKeyboard = (course) => {
   }
 
   rows.push([
-    Markup.button.callback('➕ درس جديد', `crs_add_ls:${course.id}`),
-    Markup.button.callback('🔙 تفاصيل الكورس', `crs_view:${course.id}`)
+    Markup.button.callback('➕ درس جديد', `crs_add_ls:${course.id}`)
+  ]);
+
+  rows.push([
+    backButton(`crs_view:${course.id}`),
+    homeButton()
   ]);
 
   return Markup.inlineKeyboard(rows);

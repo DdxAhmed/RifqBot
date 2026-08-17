@@ -4,7 +4,7 @@ import { connectDatabase, disconnectDatabase } from './database/prisma.js';
 import { authMiddleware } from './bot/middleware/auth.middleware.js';
 import { sessionMiddleware } from './bot/middleware/session.middleware.js';
 import { errorHandler } from './bot/middleware/error.middleware.js';
-import { registerCommands } from './bot/commands/index.js';
+import { registerCommands, setupBotCommands } from './bot/commands/index.js';
 import { registerAllHandlers } from './bot/handlers/index.js';
 import { logger } from './utils/logger.js';
 
@@ -40,6 +40,7 @@ async function startBot() {
       attempts++;
       await bot.launch();
       started = true;
+      await setupBotCommands(bot);
       logger.info('RIFQ Telegram Bot is running and ready for messages.');
     } catch (err) {
       logger.warn(`Bot launch attempt ${attempts} failed (${err.message}). Retrying in 5s...`);

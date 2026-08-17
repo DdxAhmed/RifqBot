@@ -1,5 +1,5 @@
 import { Markup } from 'telegraf';
-import { backToMainMenuButton } from './main.keyboard.js';
+import { homeButton, backButton } from './main.keyboard.js';
 
 export const adhkarMenuKeyboard = (todayStatus) => {
   const morningText = todayStatus?.morningCompleted ? '🌅 أذكار الصباح (✅ تم)' : '🌅 أذكار الصباح';
@@ -12,7 +12,9 @@ export const adhkarMenuKeyboard = (todayStatus) => {
     [
       Markup.button.callback('⚙️ إعدادات الأذكار', 'adh_settings')
     ],
-    [backToMainMenuButton()]
+    [
+      homeButton()
+    ]
   ]);
 };
 
@@ -20,7 +22,7 @@ export const adhkarSessionKeyboard = ({ kind, index, isFirst, isLast, currentCou
   const rows = [];
 
   // Counter button: clicking it counts down or indicates progress
-  const countLabel = currentCount > 0 ? `📿 التكرار (${currentCount}/${targetCount})` : '✅ تم التكرار';
+  const countLabel = currentCount > 0 ? `📿 التكرار (${currentCount}/${targetCount})` : `📿 ابدأ التكرار (${targetCount})`;
   rows.push([
     Markup.button.callback(countLabel, `adh_step:${kind}:${index}:${currentCount + 1}`)
   ]);
@@ -37,7 +39,8 @@ export const adhkarSessionKeyboard = ({ kind, index, isFirst, isLast, currentCou
   rows.push(navRow);
 
   rows.push([
-    Markup.button.callback('🚪 خروج من الجلسة', 'nav:adhkar')
+    backButton('menu:adhkar'),
+    homeButton()
   ]);
 
   return Markup.inlineKeyboard(rows);
@@ -68,7 +71,8 @@ export const adhkarSettingsKeyboard = (settings) => {
       )
     ],
     [
-      Markup.button.callback('🔙 رجوع للأذكار', 'nav:adhkar')
+      backButton('menu:adhkar'),
+      homeButton()
     ]
   ]);
 };

@@ -1,12 +1,14 @@
 import {
   getCourseDetails,
+  listUserCourses,
   toggleLessonCompletion,
   deleteCourse
 } from '../../services/course.service.js';
 import { recordUserActivity } from '../../services/streak.service.js';
 import {
   courseDetailKeyboard,
-  courseLessonsKeyboard
+  courseLessonsKeyboard,
+  coursesMenuKeyboard
 } from '../keyboards/courses.keyboard.js';
 import { cancelKeyboard, backKeyboard } from '../keyboards/main.keyboard.js';
 
@@ -21,6 +23,41 @@ export function registerCourseHandlers(bot) {
     ).catch(() => ctx.reply('أرسل اسم الكورس:', cancelKeyboard()));
   });
 
+  // Resume course flow (opens course with next unfinished lesson)
+  bot.action('crs:resume', async (ctx) => {
+    await ctx.answerCbQuery().catch(() => {});
+    const courses = await listUserCourses(ctx.state.user.id, ctx.state.user.timezone);
+    const active = courses.find((c) => c.progress.remaining > 0) || courses[0];
+
+    if (!active) {
+      return ctx.editMessageText('📚 لا توجد كورسات مضافة بعد. اضغط أدناه لإضافة كورس:', {
+        parse_mode: 'Markdown',
+        ...coursesMenuKeyboard([])
+      });
+    }
+
+    const course = await getCourseDetails(active.id, ctx.state.user.id, ctx.state.user.timezone);
+    if (!course) {
+      return ctx.editMessageText('عذرًا، لم يتم العثور على الكورس.', backKeyboard('menu:courses'));
+    }
+
+    const { progress } = course;
+    const barLength = 10;
+    const filledCount = Math.round((progress.percent / 100) * barLength);
+    const progressBar = '🟩'.repeat(filledCount) + '⬜'.repeat(barLength - filledCount);
+
+    let text = `📚 **${course.title}**\n\n` +
+      `📊 **التقدم:** ${progressBar} (${progress.percent}%)\n` +
+      `🔢 **الدروس:** ${progress.completed} من ${progress.total} مكتملة (متبقي ${progress.remaining})\n`;
+
+    if (progress.paceInfo) {
+      text += `📌 المعدل المطلوب: **${progress.paceInfo.requiredLessonsPerDay} درس/يوم**\n`;
+    }
+
+    return ctx.editMessageText(text, { parse_mode: 'Markdown', ...courseDetailKeyboard(course) })
+      .catch(() => ctx.reply(text, { parse_mode: 'Markdown', ...courseDetailKeyboard(course) }));
+  });
+
   // View course details
   bot.action(/^crs_view:(\d+)$/, async (ctx) => {
     const courseId = parseInt(ctx.match[1], 10);
@@ -28,7 +65,7 @@ export function registerCourseHandlers(bot) {
 
     const course = await getCourseDetails(courseId, ctx.state.user.id, ctx.state.user.timezone);
     if (!course) {
-      return ctx.editMessageText('عذرًا، لم يتم العثور على الكورس.', backKeyboard('nav:courses'));
+      return ctx.editMessageText('عذرًا، لم يتم العثور على الكورس.', backKeyboard('menu:courses'));
     }
 
     const { progress } = course;
@@ -68,7 +105,7 @@ export function registerCourseHandlers(bot) {
 
     const course = await getCourseDetails(courseId, ctx.state.user.id, ctx.state.user.timezone);
     if (!course) {
-      return ctx.editMessageText('عذرًا، لم يتم العثور على الكورس.', backKeyboard('nav:courses'));
+      return ctx.editMessageText('عذرًا، لم يتم العثور على الكورس.', backKeyboard('menu:courses'));
     }
 
     const text = `📑 **دروس: ${course.title}**\n` +
@@ -145,7 +182,7 @@ export function registerCourseHandlers(bot) {
     await ctx.answerCbQuery('🗑️ تم حذف الكورس.').catch(() => {});
     return ctx.editMessageText('🗑️ **تم حذف الكورس وجميع دروسه بنجاح.**', {
       parse_mode: 'Markdown',
-      ...backKeyboard('nav:courses')
+      ...backKeyboard('menu:courses')
     });
   });
 }

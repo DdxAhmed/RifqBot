@@ -1,13 +1,21 @@
 import { Markup } from 'telegraf';
-import { backToMainMenuButton } from './main.keyboard.js';
+import { homeButton, backButton } from './main.keyboard.js';
 
 export const remindersMenuKeyboard = () => {
   return Markup.inlineKeyboard([
     [
-      Markup.button.callback('➕ إضافة تذكير جديد', 'rem:add'),
-      Markup.button.callback('📋 قائمة التذكيرات', 'rem:list')
+      Markup.button.callback('➕ إضافة تذكير', 'rem:add')
     ],
-    [backToMainMenuButton()]
+    [
+      Markup.button.callback('📋 كل التذكيرات', 'rem:list'),
+      Markup.button.callback('🔁 المتكررة', 'rem:recurring')
+    ],
+    [
+      Markup.button.callback('✅ المكتملة', 'rem:completed')
+    ],
+    [
+      homeButton()
+    ]
   ]);
 };
 
@@ -39,21 +47,42 @@ export const reminderAlertKeyboard = (reminderId) => {
 export const reminderItemKeyboard = (reminderId) => {
   return Markup.inlineKeyboard([
     [
-      Markup.button.callback('✅ تم', `rem_act:done:${reminderId}`),
+      Markup.button.callback('✅ تم الإنجاز', `rem_act:done:${reminderId}`),
       Markup.button.callback('🗑️ حذف', `rem_act:del:${reminderId}`)
     ],
-    [Markup.button.callback('🔙 قائمة التذكيرات', 'rem:list')]
+    [
+      backButton('rem:list'),
+      homeButton()
+    ]
   ]);
 };
 
-export const remindersListKeyboard = (reminders) => {
+export const remindersListKeyboard = (reminders, backAction = 'menu:reminders') => {
   const rows = reminders.map((r) => [
     Markup.button.callback(`⏰ ${r.title}`, `rem_view:${r.id}`),
     Markup.button.callback('🗑️', `rem_act:del:${r.id}`)
   ]);
 
-  rows.push([Markup.button.callback('➕ إضافة تذكير جديد', 'rem:add')]);
-  rows.push([backToMainMenuButton()]);
+  rows.push([
+    Markup.button.callback('➕ إضافة تذكير جديد', 'rem:add')
+  ]);
+  rows.push([
+    backButton(backAction),
+    homeButton()
+  ]);
+
+  return Markup.inlineKeyboard(rows);
+};
+
+export const completedRemindersKeyboard = (reminders) => {
+  const rows = reminders.map((r) => [
+    Markup.button.callback(`✅ ${r.title}`, `rem_view:${r.id}`)
+  ]);
+
+  rows.push([
+    backButton('menu:reminders'),
+    homeButton()
+  ]);
 
   return Markup.inlineKeyboard(rows);
 };
